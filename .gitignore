@@ -1,0 +1,17 @@
+# Secrets & certificates
+.env
+*.key
+*.pem
+certs/*.crt
+certs/*.key
+!certs/.gitkeep
+
+# Runtime
+node_modules/
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
