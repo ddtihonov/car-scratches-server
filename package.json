@@ -4,10 +4,10 @@
   "description": "Backend proxy for VTB API integration",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "lint": "eslint src/**/*.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ddtihonov/car-scratches-server.git"
