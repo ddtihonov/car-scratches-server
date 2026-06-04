@@ -3,76 +3,76 @@
 // backend/src/services/paymentService.js
 
 const httpClient = require('../utils/httpClient');
+const crypto = require('crypto');
 
 class PaymentService {
-    /**
-     * Создание ордера
-     * @param {Object} orderData - данные с фронтенда
-     */
     async createOrder(orderData) {
-        // 🔥 Преобразуем данные в формат API ВТБ
         const payload = {
-        orderId: orderData.orderId || `GURU-${Date.now()}`,
-        orderName: orderData.description || orderData.orderName || 'Оплата услуг Guru-Mos',
+        orderId: orderData.orderId || crypto.randomUUID(),
+        orderName: orderData.orderName || orderData.description || 'Оплата услуг Guru-Mos',
         amount: {
-            value: Math.round(orderData.amount * 100), // Рубли → копейки (если требуется)
+            value: orderData.amount,
             code: orderData.currency || 'RUB'
         },
-        expire: orderData.expire || this._getExpireDate(20), // По умолчанию 20 минут
+        expire: orderData.expire || this._getExpireDate(20),
         returnUrl: orderData.returnUrl,
-        failUrl: orderData.failUrl,
         customer: orderData.customer,
         returnPaymentData: orderData.returnPaymentData,
         additionalInfo: orderData.additionalInfo,
-        paymentDetail: orderData.paymentDetail
+        paymentDetail: orderData.paymentDetail,
+        binding: orderData.binding
         };
 
-        // Удаляем undefined поля
         Object.keys(payload).forEach(key => {
-        if (payload[key] === undefined) {
-            delete payload[key];
-        }
+        if (payload[key] === undefined) delete payload[key];
         });
 
-        console.log('📦 Формируем запрос на создание ордера:', payload);
+        console.log('📦 Запрос на создание ордера:', JSON.stringify(payload, null, 2));
         
-        return await httpClient.post('/v1/orders', payload);
+        const response = await httpClient.post('/v1/orders', payload);
+        
+        // 🔥 Возвращаем объект ордера + сохраняем orderCode для будущих операций
+        const order = response.data.object || response.data;
+        console.log('✅ Ордер создан. orderCode:', order.orderCode, 'payUrl:', order.payUrl);
+        
+        return order;
     }
 
-    async getOrder(orderId) {
-        return await httpClient.get(`/v1/orders/${orderId}`);
+    // 🔥 ВАЖНО: Для остальных операций используем orderCode (ID от ВТБ), а не orderId
+    async getOrder(orderCode) {
+        const response = await httpClient.get(`/v1/orders/${orderCode}`);
+        return response.data.object || response.data;
     }
 
-    async cancelOrder(orderId) {
-        return await httpClient.post(`/v1/orders/${orderId}/cancel`, {});
+    async cancelOrder(orderCode) {
+        const response = await httpClient.post(`/v1/orders/${orderCode}/cancel`, {});
+        return response.data.object || response.data;
     }
 
     async createRefund(refundData) {
         const payload = {
         paymentId: refundData.paymentId,
         amount: {
-            value: Math.round(refundData.amount * 100),
+            value: refundData.amount,
             code: refundData.currency || 'RUB'
         },
         description: refundData.description
         };
 
-        return await httpClient.post('/v1/refunds', payload);
+        const response = await httpClient.post('/v1/refunds', payload);
+        return response.data.object || response.data;
     }
 
     async getRefund(refundId) {
-        return await httpClient.get(`/v1/refunds/${refundId}`);
+        const response = await httpClient.get(`/v1/refunds/${refundId}`);
+        return response.data.object || response.data;
     }
 
-    /**
-     * Генерирует дату истечения срока жизни ордера
-     * @param {number} minutes - через сколько минут истечет
-     */
     _getExpireDate(minutes) {
         const date = new Date();
         date.setMinutes(date.getMinutes() + minutes);
-        return date.toISOString(); // Формат: 2023-10-12T12:02:16.883Z
+        return date.toISOString();
     }
     }
 
-    module.exports = new PaymentService();
+module.exports = new PaymentService();
