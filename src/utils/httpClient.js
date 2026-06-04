@@ -1,25 +1,25 @@
-// src/utils/httpClient.js
+// Настроенный экземпляр Axios с токенами
 
 const axios = require('axios');
 const https = require('https');
+const config = require('../config');
 
-// Кэш для хранения токена и времени его истечения
 let tokenCache = { token: null, expiresAt: 0 };
 
-/**
- * Получает новый access_token от Платежного шлюза
- */
+const isStrictSSL = config.isProduction;
+
 async function fetchNewToken() {
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');
-    params.append('client_id', process.env.PAYMENT_GATEWAY_CLIENT_ID);
-    params.append('client_secret', process.env.PAYMENT_GATEWAY_CLIENT_SECRET);
+    params.append('client_id', config.paymentGateway.clientId);
+    params.append('client_secret', config.paymentGateway.clientSecret);
 
-    // Агент для игнорирования ошибки SSL в тестовой среде
-    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const httpsAgent = new https.Agent({ 
+        rejectUnauthorized: isStrictSSL 
+    });
 
     const response = await axios.post(
-        process.env.PAYMENT_GATEWAY_TOKEN_URL,
+        config.paymentGateway.tokenUrl,
         params,
         {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -28,7 +28,6 @@ async function fetchNewToken() {
         }
     );
 
-    // Сохраняем токен в кэш (с запасом 10 секунд до реального истечения)
     tokenCache = {
         token: response.data.access_token,
         expiresAt: Date.now() + (response.data.expires_in - 10) * 1000
@@ -37,9 +36,6 @@ async function fetchNewToken() {
     return tokenCache.token;
     }
 
-    /**
-     * Возвращает валидный токен (из кэша или новый)
-     */
     async function getAuthToken() {
     const now = Date.now();
     if (tokenCache.token && tokenCache.expiresAt > now + 30000) {
@@ -48,32 +44,26 @@ async function fetchNewToken() {
     return await fetchNewToken();
     }
 
-    // Создаем экземпляр axios с базовыми настройками
     const httpClient = axios.create({
-    baseURL: process.env.PAYMENT_GATEWAY_BASE_URL,
+    baseURL: config.paymentGateway.baseUrl,
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized: false }) // Важно для тестовой среды ВТБ
+    httpsAgent: new https.Agent({ rejectUnauthorized: isStrictSSL })
     });
 
-    // Перехватчик (interceptor): выполняется перед КАЖДЫМ запросом к шлюзу
-    httpClient.interceptors.request.use(async (config) => {
+    httpClient.interceptors.request.use(async (requestConfig) => {
     const token = await getAuthToken();
     
-    // Автоматически добавляем заголовки
-    config.headers['Authorization'] = `Bearer ${token}`;
+    requestConfig.headers['Authorization'] = `Bearer ${token}`;
     
-    if (process.env.IBM_CLIENT_ID) {
-        config.headers['X-IBM-Client-Id'] = process.env.IBM_CLIENT_ID.toLowerCase();
+    if (config.paymentGateway.ibmClientId) {
+        requestConfig.headers['X-IBM-Client-Id'] = config.paymentGateway.ibmClientId.toLowerCase();
     }
     
-    if (process.env.MERCHANT_AUTHORIZATION) {
-        config.headers['Merchant-Authorization'] = process.env.MERCHANT_AUTHORIZATION;
+    if (config.paymentGateway.merchantAuthorization) {
+        requestConfig.headers['Merchant-Authorization'] = config.paymentGateway.merchantAuthorization;
     }
 
-    return config;
-    }, (error) => {
-    return Promise.reject(error);
-    });
+    return requestConfig;
+    }, (error) => Promise.reject(error));
 
-// ⚠️ ОБЯЗАТЕЛЬНЫЙ ЭКСПОРТ самого экземпляра axios (у него есть методы .get, .post, .put и т.д.)
 module.exports = httpClient;

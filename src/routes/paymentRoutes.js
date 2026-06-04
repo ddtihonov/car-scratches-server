@@ -1,4 +1,4 @@
-// src/routes/paymentRoutes.js
+// Маршрутизация (URL -> Контроллер)
 
 const express = require('express');
 const router = express.Router();
@@ -11,4 +11,5 @@ router.post('/refunds', paymentController.createRefund);
 router.get('/refunds/:refundId', paymentController.getRefund);
 router.post('/webhook', paymentController.handleWebhook);
 
+// ⚠️ ВАЖНО: Экспорт роутера
 module.exports = router;

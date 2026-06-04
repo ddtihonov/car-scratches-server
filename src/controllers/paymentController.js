@@ -1,10 +1,11 @@
+ // Обработка HTTP запросов/ответов
+
 const paymentService = require('../services/paymentService');
 
 exports.createOrder = async (req, res, next) => {
     try {
         const result = await paymentService.createOrder(req.body);
         res.status(201).json(result);
-        // Если нужен редирект на фронтенде, фронтенд сам сделает это по полю payurl
     } catch (error) {
         next(error);
     }
@@ -46,20 +47,13 @@ exports.createOrder = async (req, res, next) => {
     }
     };
 
-    // Обработка Callback (Webhook) от Платежного шлюза
     exports.handleWebhook = async (req, res, next) => {
     try {
-        // ⚠️ Здесь должна быть логика: 
-        // 1. Проверка подписи (если шлюз её присылает)
-        // 2. Обновление статуса заказа в вашей базе данных
-        // 3. Логирование события
-        
         console.log('📩 Получен webhook от шлюза:', req.body);
-        
-        // Всегда отвечайте 200 OK, чтобы шлюз не повторял запрос
+        // TODO: Здесь логика обновления статуса в вашей БД
         res.status(200).send('OK'); 
     } catch (error) {
-        console.error('❌ Ошибка обработки webhook:', error);
+        console.error('❌ Ошибка webhook:', error);
         res.status(500).send('Internal Server Error');
     }
-    };
+};
