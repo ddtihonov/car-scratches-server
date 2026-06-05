@@ -4,6 +4,7 @@
 
 const httpClient = require('../utils/httpClient');
 const crypto = require('crypto');
+const config = require('../config');
 
 class PaymentService {
     async createOrder(orderData) {
@@ -15,7 +16,10 @@ class PaymentService {
             code: orderData.currency || 'RUB'
         },
         expire: orderData.expire || this._getExpireDate(20),
-        returnUrl: orderData.returnUrl,
+        
+        // 🔥 Используем публичные URL из .env
+        returnUrl: process.env.PUBLIC_RETURN_URL || orderData.returnUrl,
+        
         customer: orderData.customer,
         returnPaymentData: orderData.returnPaymentData,
         additionalInfo: orderData.additionalInfo,
@@ -23,6 +27,7 @@ class PaymentService {
         binding: orderData.binding
         };
 
+        // Удаляем undefined поля
         Object.keys(payload).forEach(key => {
         if (payload[key] === undefined) delete payload[key];
         });
@@ -30,15 +35,12 @@ class PaymentService {
         console.log('📦 Запрос на создание ордера:', JSON.stringify(payload, null, 2));
         
         const response = await httpClient.post('/v1/orders', payload);
-        
-        // 🔥 Возвращаем объект ордера + сохраняем orderCode для будущих операций
         const order = response.data.object || response.data;
-        console.log('✅ Ордер создан. orderCode:', order.orderCode, 'payUrl:', order.payUrl);
         
+        console.log('✅ Ордер создан. orderCode:', order.orderCode, 'payUrl:', order.payUrl);
         return order;
     }
 
-    // 🔥 ВАЖНО: Для остальных операций используем orderCode (ID от ВТБ), а не orderId
     async getOrder(orderCode) {
         const response = await httpClient.get(`/v1/orders/${orderCode}`);
         return response.data.object || response.data;

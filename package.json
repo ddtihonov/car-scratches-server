@@ -2,10 +2,13 @@
   "name": "car-scratches-server",
   "version": "1.0.0",
   "description": "Backend proxy for VTB API integration",
-  "main": "src/index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
