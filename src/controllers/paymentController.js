@@ -47,13 +47,11 @@ exports.createOrder = async (req, res, next) => {
     }
     };
 
-    exports.handleWebhook = async (req, res, next) => {
+    exports.getToken = async (req, res, next) => {
     try {
-        console.log('📩 Получен webhook от шлюза:', req.body);
-        // TODO: Здесь логика обновления статуса в вашей БД
-        res.status(200).send('OK'); 
+        const result = await paymentService.getToken();
+        res.json(result);
     } catch (error) {
-        console.error('❌ Ошибка webhook:', error);
-        res.status(500).send('Internal Server Error');
+        next(error);
     }
-};
+    };
