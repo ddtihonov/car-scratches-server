@@ -76,7 +76,7 @@ const httpClient = axios.create({
     timeout: 15000,
     httpsAgent: apiHttpsAgent,
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'User-Agent': 'curl/8.5.0',  // 🔥 Имитируем curl, который точно работает!
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
@@ -120,4 +120,3 @@ httpClient.interceptors.response.use(
 );
 
 module.exports = httpClient;
-module.exports.getAuthToken = getAuthToken;

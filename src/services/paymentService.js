@@ -1,3 +1,5 @@
+
+// Бизнес-логика (вызовы к API шлюза)
 // src/services/paymentService.js
 
 const httpClient = require('../utils/httpClient');
@@ -5,19 +7,7 @@ const crypto = require('crypto');
 
 class PaymentService {
     /**
-     * Получение access_token (для тестирования)
-     */
-    async getToken() {
-        const token = await httpClient.getAuthToken();
-        return {
-            access_token: token,
-            expires_in: 179,
-            token_type: 'Bearer'
-        };
-    }
-
-    /**
-     * Создание ордера в ВТБ (POST /v1/orders)
+     * Создание ордера (POST /v1/orders)
      */
     async createOrder(orderData) {
         const payload = {
@@ -29,7 +19,8 @@ class PaymentService {
             },
             expire: orderData.expire || this._getExpireDate(20),
             returnUrl: process.env.PUBLIC_RETURN_URL || orderData.returnUrl,
-
+            
+            // 🔥 Production структура bundle (отличается от тестовой!)
             bundle: {
                 fiscalInfo: {
                     clientEmail: orderData.email || undefined
@@ -67,16 +58,25 @@ class PaymentService {
         return order;
     }
 
+    /**
+     * Получение информации об ордерe (GET /v1/orders/{orderId})
+     */
     async getOrder(orderId) {
         const response = await httpClient.get(`/v1/orders/${orderId}`);
         return response.data.object || response.data;
     }
 
+    /**
+     * Отмена ордера (POST /v1/orders/{orderId}/cancel)
+     */
     async cancelOrder(orderId) {
         const response = await httpClient.post(`/v1/orders/${orderId}/cancel`, {});
         return response.data.object || response.data;
     }
 
+    /**
+     * Создание возврата (POST /v1/refunds)
+     */
     async createRefund(refundData) {
         const payload = {
             paymentId: refundData.paymentId,
@@ -91,6 +91,9 @@ class PaymentService {
         return response.data.object || response.data;
     }
 
+    /**
+     * Получение информации о возврате (GET /v1/refunds/{refundId})
+     */
     async getRefund(refundId) {
         const response = await httpClient.get(`/v1/refunds/${refundId}`);
         return response.data.object || response.data;
